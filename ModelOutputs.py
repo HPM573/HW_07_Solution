@@ -134,36 +134,6 @@ class SimOutputs:
                 time_in_system]      # time in the system
             )
 
-    # def collect_mh_patient_departure(self, patient):
-    #     """ collects statistics for a departing patient
-    #     :param patient: the departing patient
-    #     """
-    #
-    #     self.nPatientsServed += 1
-    #     self.nPatientsReceivedConsult += 1
-    #     self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
-    #
-    #     time_in_system = self.simCal.time-patient.tArrived
-    #     time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
-    #     time_waiting_mh = patient.tLeftWaitingRoomMH-patient.tJoinedWaitingRoomMH
-    #     time_waiting = time_waiting_mh+time_waiting_exam
-    #
-    #     self.patientTimeInWaitingRoom.append(time_waiting)
-    #     self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
-    #     self.patientTimeInSystem.append(time_in_system)
-    #
-    #     # build the patient summary
-    #     if self.traceOn:
-    #         self.patientSummary.append([
-    #             str(patient),        # name
-    #             patient.tArrived,    # time arrived
-    #             self.simCal.time,    # time left
-    #             time_waiting,        # time waiting
-    #             time_in_system]      # time in the system
-    #         )
-    #
-    #     self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
-
     def collect_patient_starting_exam(self):
         """ collects statistics for a patient who just started the exam """
 
