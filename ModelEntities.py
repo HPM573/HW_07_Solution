@@ -254,7 +254,7 @@ class ConsultRoom(Room):
         self.isBusy = False
 
         # collect statistics
-        self.simOut.collect_mh_patient_departure(patient=returned_patient)
+        self.simOut.collect_patient_departure(patient=returned_patient)
 
         # trace
         self.trace.add_message(str(returned_patient) + ' leaves ' + str(self) + '.')
@@ -307,11 +307,6 @@ class UrgentCare:
                                        sim_out=self.simOutputs,
                                        trace=self.trace)
 
-        # statistics
-        self.nPatientsArrived = 0           # number of patients arrived
-        self.nPatientsServed = 0            # number of patients served
-        self.nPatientsReceivedConsult = 0   # number of patients received mental health consultation
-
     def process_new_patient(self, patient, rng):
         """ receives a new patient
         :param patient: the new patient
@@ -327,29 +322,32 @@ class UrgentCare:
             self.trace.add_message('Urgent care is closed. '+str(patient)+' does not get admitted.')
             return
 
-        self.nPatientsArrived += 1
-
         # add the new patient to the list of patients
         self.patients.append(patient)
 
         # collect statistics on new patient
         self.simOutputs.collect_patient_arrival(patient=patient)
 
-        # find an idle exam room
-        idle_room_found = False
-        for room in self.examRooms:
-            # if this room is busy
-            if not room.isBusy:
-                # send the last patient to this exam room
-                room.exam(patient=patient, rng=rng)
-                idle_room_found = True
-                # break the for loop
-                break
-
-        # if no idle room was found
-        if idle_room_found is False:
-            # add the patient to the waiting room
+        # check if anyone is waiting
+        if self.waitingRoom.get_num_patients_waiting() > 0:
+            # if anyone is waiting, add the patient to the waiting room
             self.waitingRoom.add_patient(patient=patient)
+        else:
+            # find an idle exam room
+            idle_room_found = False
+            for room in self.examRooms:
+                # if this room is busy
+                if not room.isBusy:
+                    # send the last patient to this exam room
+                    room.exam(patient=patient, rng=rng)
+                    idle_room_found = True
+                    # break the for loop
+                    break
+
+            # if no idle room was found
+            if not idle_room_found:
+                # add the patient to the waiting room
+                self.waitingRoom.add_patient(patient=patient)
 
         # find the arrival time of the next patient (current time + time until next arrival)
         next_arrival_time = self.simCal.time + self.params.arrivalTimeDist.sample(rng=rng)
@@ -393,7 +391,6 @@ class UrgentCare:
         else:
             # remove the discharged patient from the list of patients
             self.patients.remove(this_patient)
-            self.nPatientsServed += 1
 
         # check if there is any patient waiting
         if self.waitingRoom.get_num_patients_waiting() > 0:
@@ -415,8 +412,6 @@ class UrgentCare:
 
         # remove the discharged patient from the list of patients
         self.patients.remove(this_patient)
-        self.nPatientsServed += 1
-        self.nPatientsReceivedConsult += 1
 
         # check if there is any patient waiting
         if self.consultWaitingRoom.get_num_patients_waiting() > 0:

@@ -14,6 +14,7 @@ class SimOutputs:
         self.traceOn = trace_on         # if should prepare patient summary report
         self.nPatientsArrived = 0       # number of patients arrived
         self.nPatientsServed = 0         # number of patients served
+        self.nPatientsReceivedConsult = 0 # number of patients who received MH consultation
         self.patientTimeInSystem = []   # observations on patients time in urgent care
         self.patientTimeInWaitingRoom = []  # observations on patients time in the waiting room
         self.patientTimeInMentalHealthWaiting = []  # observations on patients time in MH waiting room
@@ -24,7 +25,7 @@ class SimOutputs:
                 ['Patient', 'Time Arrived', 'Time Left', 'Time Waited', 'Time In the System'])
 
         # sample path for the patients waiting: CONTINUOUS
-        # prevalence sample path: # of people in given entity of model
+        # prevalence sample path: # of people in the waiting room
         self.nPatientsWaiting = Path.PrevalenceSamplePath(
             name='Number of patients waiting', initial_size=0)
 
@@ -112,14 +113,16 @@ class SimOutputs:
         self.nPatientsServed += 1
         self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
 
-        time_in_system = self.simCal.time-patient.tArrived
-        time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
-        time_waiting = time_waiting_exam
-        time_waiting_mh = 0
-
-        self.patientTimeInWaitingRoom.append(time_waiting)
-        self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
+        time_in_system = self.simCal.time - patient.tArrived
+        time_waiting_exam = patient.tLeftWaitingRoom - patient.tJoinedWaitingRoom
+        self.patientTimeInWaitingRoom.append(time_waiting_exam)
         self.patientTimeInSystem.append(time_in_system)
+
+        if patient.ifWithDepression:
+            self.nPatientsReceivedConsult += 1
+            time_waiting_mh = patient.tLeftWaitingRoomMH - patient.tJoinedWaitingRoomMH
+            self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
+            self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
 
         # build the patient summary
         if self.traceOn:
@@ -127,38 +130,39 @@ class SimOutputs:
                 str(patient),        # name
                 patient.tArrived,    # time arrived
                 self.simCal.time,    # time left
-                time_waiting,        # time waiting
+                time_waiting_exam,        # time waiting
                 time_in_system]      # time in the system
             )
 
-    def collect_mh_patient_departure(self, patient):
-        """ collects statistics for a departing patient
-        :param patient: the departing patient
-        """
-
-        self.nPatientsServed += 1
-        self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
-
-        time_in_system = self.simCal.time-patient.tArrived
-        time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
-        time_waiting_mh = patient.tLeftWaitingRoomMH-patient.tJoinedWaitingRoomMH
-        time_waiting = time_waiting_mh+time_waiting_exam
-
-        self.patientTimeInWaitingRoom.append(time_waiting)
-        self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
-        self.patientTimeInSystem.append(time_in_system)
-
-        # build the patient summary
-        if self.traceOn:
-            self.patientSummary.append([
-                str(patient),        # name
-                patient.tArrived,    # time arrived
-                self.simCal.time,    # time left
-                time_waiting,        # time waiting
-                time_in_system]      # time in the system
-            )
-
-        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
+    # def collect_mh_patient_departure(self, patient):
+    #     """ collects statistics for a departing patient
+    #     :param patient: the departing patient
+    #     """
+    #
+    #     self.nPatientsServed += 1
+    #     self.nPatientsReceivedConsult += 1
+    #     self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
+    #
+    #     time_in_system = self.simCal.time-patient.tArrived
+    #     time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
+    #     time_waiting_mh = patient.tLeftWaitingRoomMH-patient.tJoinedWaitingRoomMH
+    #     time_waiting = time_waiting_mh+time_waiting_exam
+    #
+    #     self.patientTimeInWaitingRoom.append(time_waiting)
+    #     self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
+    #     self.patientTimeInSystem.append(time_in_system)
+    #
+    #     # build the patient summary
+    #     if self.traceOn:
+    #         self.patientSummary.append([
+    #             str(patient),        # name
+    #             patient.tArrived,    # time arrived
+    #             self.simCal.time,    # time left
+    #             time_waiting,        # time waiting
+    #             time_in_system]      # time in the system
+    #         )
+    #
+    #     self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
 
     def collect_patient_starting_exam(self):
         """ collects statistics for a patient who just started the exam """
