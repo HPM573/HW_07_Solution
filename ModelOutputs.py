@@ -23,7 +23,8 @@ class SimOutputs:
             self.patientSummary.append(
                 ['Patient', 'Time Arrived', 'Time Left', 'Time Waited', 'Time In the System'])
 
-        # sample path for the patients waiting
+        # sample path for the patients waiting: CONTINUOUS
+        # prevalence sample path: # of people in given entity of model
         self.nPatientsWaiting = Path.PrevalenceSamplePath(
             name='Number of patients waiting', initial_size=0)
 
@@ -54,7 +55,7 @@ class SimOutputs:
         self.nPatientsArrived += 1
 
         # update the sample path of patients in the system
-        self.nPatientInSystem.record_increment(time=self.simCal.time, increment=+1)
+        self.nPatientInSystem.record_increment(time=self.simCal.time, increment=1)
 
         # store arrival time of this patient
         patient.tArrived = self.simCal.time
@@ -115,7 +116,6 @@ class SimOutputs:
         time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
         time_waiting = time_waiting_exam
         time_waiting_mh = 0
-        # self.nExamRoomBusy.record_increment(time=self.simCal.time, increment=-1)
 
         self.patientTimeInWaitingRoom.append(time_waiting)
         self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
@@ -143,7 +143,6 @@ class SimOutputs:
         time_waiting_exam = patient.tLeftWaitingRoom-patient.tJoinedWaitingRoom
         time_waiting_mh = patient.tLeftWaitingRoomMH-patient.tJoinedWaitingRoomMH
         time_waiting = time_waiting_mh+time_waiting_exam
-        # self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
 
         self.patientTimeInWaitingRoom.append(time_waiting)
         self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
@@ -159,10 +158,12 @@ class SimOutputs:
                 time_in_system]      # time in the system
             )
 
+        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
+
     def collect_patient_starting_exam(self):
         """ collects statistics for a patient who just started the exam """
 
-        self.nExamRoomBusy.record_increment(time=self.simCal.time, increment=+1)
+        self.nExamRoomBusy.record_increment(time=self.simCal.time, increment=1)
 
     def collect_patient_ending_exam(self):
 
@@ -171,11 +172,7 @@ class SimOutputs:
     def collect_patient_starting_mh_exam(self):
         """ collects statistics for a patient who just started the mh consult """
 
-        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=+1)
-
-    def collect_patient_ending_mh_exam(self):
-
-        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
+        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=1)
 
     def collect_end_of_simulation(self):
         """

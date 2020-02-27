@@ -74,7 +74,7 @@ class MHWaitingRoom:
         :param sim_out: simulation output
         :param trace: simulation trace
         """
-        self.patientsWaiting = []   # list of patients in the MH waiting room
+        self.patientsWaitingMH = []   # list of patients in the MH waiting room
         self.simOut = sim_out
         self.trace = trace
 
@@ -87,11 +87,11 @@ class MHWaitingRoom:
         self.simOut.collect_patient_joining_mh_waiting_room(patient=patient)
 
         # add the patient to the list of patients waiting
-        self.patientsWaiting.append(patient)
+        self.patientsWaitingMH.append(patient)
 
         # trace
         self.trace.add_message(
-            str(patient) + ' joins the MH waiting room. Number waiting = ' + str(len(self.patientsWaiting)) + '.')
+            str(patient) + ' joins the MH waiting room. Number waiting = ' + str(len(self.patientsWaitingMH)) + '.')
 
     def get_next_patient(self):
         """
@@ -99,21 +99,21 @@ class MHWaitingRoom:
         """
 
         # update statistics for the patient who leaves the waiting room
-        self.simOut.collect_patient_leaving_mh_waiting_room(patient=self.patientsWaiting[0])
+        self.simOut.collect_patient_leaving_mh_waiting_room(patient=self.patientsWaitingMH[0])
 
         # trace
         self.trace.add_message(
-            str(self.patientsWaiting[0]) + ' leaves the MH waiting room. Number waiting = '
-            + str(len(self.patientsWaiting) - 1) + '.')
+            str(self.patientsWaitingMH[0]) + ' leaves the MH waiting room. Number waiting = '
+            + str(len(self.patientsWaitingMH) - 1) + '.')
 
         # pop the patient
-        return self.patientsWaiting.pop(0)
+        return self.patientsWaitingMH.pop(0)
 
     def get_num_patients_waiting(self):
         """
         :return: the number of patient waiting in the waiting room
         """
-        return len(self.patientsWaiting)
+        return len(self.patientsWaitingMH)
 
 
 class Room:
@@ -186,15 +186,16 @@ class ExamRoom(Room):
 
         # the exam room is idle now
         self.isBusy = False
-
-        # collect statistics
+        #
+        # # collect statistics
         self.simOut.collect_patient_ending_exam()
 
-        # collect statistics IF not going to mhs
-        self.simOut.collect_patient_departure(patient=returned_patient)
+        if returned_patient.ifWithDepression is False:
+            # collect statistics
+            self.simOut.collect_patient_departure(patient=returned_patient)
 
-        # trace
-        self.trace.add_message(str(returned_patient) + ' leaves ' + str(self) + '.')
+            # trace
+            self.trace.add_message(str(returned_patient) + ' leaves ' + str(self) + '.')
 
         return returned_patient
 
@@ -251,9 +252,6 @@ class ConsultRoom(Room):
 
         # the exam room is idle now
         self.isBusy = False
-
-        # collect statistics
-        self.simOut.collect_patient_ending_mh_exam()
 
         # collect statistics
         self.simOut.collect_mh_patient_departure(patient=returned_patient)
@@ -387,7 +385,7 @@ class UrgentCare:
             # send the patient to the mental health specialist
             # if the mental health specialist is busy
             if self.consultRoom.isBusy:
-                # the patient will join the waiting room in the mental health unity
+                # the patient will join the waiting room in the mental health unit
                 self.consultWaitingRoom.add_patient(patient=this_patient)
             else:
                 # this patient starts receiving mental health consultation
