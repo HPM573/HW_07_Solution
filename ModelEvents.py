@@ -19,7 +19,7 @@ class Arrival(Event):
         :param patient: next patient
         :param urgent_care: the urgent care
         """
-        # initialize the master class
+        # initialize the super class
         Event.__init__(self, time=time, priority=Priority.ARRIVAL.value)
 
         self.patient = patient
@@ -84,7 +84,7 @@ class CloseUrgentCare(Event):
 
         self.urgentCare = urgent_care
 
-        # call the master class initialization
+        # call the super class initialization
         Event.__init__(self, time=time, priority=Priority.CLOSE.value)
 
     def process(self, rng=None):
