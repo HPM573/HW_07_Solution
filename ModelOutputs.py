@@ -116,13 +116,21 @@ class SimOutputs:
         self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
 
         time_in_system = self.simCal.time - patient.tArrived
-        time_waiting_exam = patient.tLeftWaitingRoom - patient.tJoinedWaitingRoom
+        if patient.tJoinedWaitingRoom is None:
+            time_waiting_exam = 0
+        else:
+            time_waiting_exam = patient.tLeftWaitingRoom - patient.tJoinedWaitingRoom
+
         self.patientTimeInWaitingRoom.append(time_waiting_exam)
         self.patientTimeInSystem.append(time_in_system)
 
         if patient.ifWithDepression:
             self.nPatientsReceivedConsult += 1
-            time_waiting_mh = patient.tLeftWaitingRoomMH - patient.tJoinedWaitingRoomMH
+            if patient.tJoinedWaitingRoomMH is None:
+                time_waiting_mh = 0
+            else:
+                time_waiting_mh = patient.tLeftWaitingRoomMH - patient.tJoinedWaitingRoomMH
+
             self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
             self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
 

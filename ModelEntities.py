@@ -9,10 +9,10 @@ class Patient:
         """
         self.id = id
         self.ifWithDepression = if_with_depression
-        self.tJoinedWaitingRoom = 0
-        self.tLeftWaitingRoom = 0
-        self.tLeftWaitingRoomMH = 0
-        self.tJoinedWaitingRoomMH = 0
+        self.tJoinedWaitingRoom = None
+        self.tLeftWaitingRoom = None
+        self.tLeftWaitingRoomMH = None
+        self.tJoinedWaitingRoomMH = None
 
     def __str__(self):
         return "Patient " + str(self.id)
