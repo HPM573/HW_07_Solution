@@ -1,6 +1,4 @@
-import SimPy.SamplePath as Path
-import SimPy.FormatFunctions as F
-import InputData as D
+from deampy.sample_path import PrevalenceSamplePath
 
 
 class SimOutputs:
@@ -16,36 +14,36 @@ class SimOutputs:
         self.traceOn = trace_on         # if should prepare patient summary report
         self.nPatientsArrived = 0       # number of patients arrived
         self.nPatientsServed = 0         # number of patients served
-        self.nPatientsReceivedConsult = 0 # number of patients who received MH consultation
+        self.nPatientsReceivedMHConsult = 0  # number of patients who received MH consultation
         self.patientTimeInSystem = []   # observations on patients time in urgent care
-        self.patientTimeInWaitingRoom = []  # observations on patients time in the waiting room
-        self.patientTimeInMentalHealthWaiting = []  # observations on patients time in MH waiting room
+        self.patientTimeInPCPWaitingRoom = []  # observations on patients time in the waiting room
+        self.patientTimeInMHWaitingRoom = []  # observations on patients time in MH waiting room
 
         self.patientSummary = []    # id, tArrived, tLeft, duration waited, duration in the system
         if self.traceOn:
             self.patientSummary.append(
                 ['Patient', 'Time Arrived', 'Time Left', 'Time Waited', 'Time In the System'])
 
-        # sample path for the patients waiting: CONTINUOUS
-        # prevalence sample path: # of people in the waiting room
-        self.nPatientsWaiting = Path.PrevalenceSamplePath(
-            name='Number of patients waiting', initial_size=0)
+        # sample path for the patients waiting
+        # prevalence sample path: # of people in the waiting room to see a PCP
+        self.nPatientsWaitingPCP = PrevalenceSamplePath(
+            name='Number of patients waiting for PCP', initial_size=0)
 
         # sample path for the patients waiting for MHS
-        self.nPatientsWaitingMH = Path.PrevalenceSamplePath(
+        self.nPatientsWaitingMH = PrevalenceSamplePath(
             name='Number of patients waiting for MHS', initial_size=0)
 
         # sample path for the patients in system
-        self.nPatientInSystem = Path.PrevalenceSamplePath(
+        self.nPatientInSystem = PrevalenceSamplePath(
             name='Number of patients in the urgent care', initial_size=0)
 
         # sample path for PCP utilization
-        self.nExamRoomBusy = Path.PrevalenceSamplePath(
+        self.nPCPBusy = PrevalenceSamplePath(
             name='Utilization of PCP', initial_size=0
         )
 
         # sample path for MHS utilization
-        self.nMentalHealthBusy = Path.PrevalenceSamplePath(
+        self.nMHSBusy = PrevalenceSamplePath(
             name='Utilization of Mental Health Specialist', initial_size=0
         )
 
@@ -63,46 +61,46 @@ class SimOutputs:
         # store arrival time of this patient
         patient.tArrived = self.simCal.time
 
-    def collect_patient_joining_waiting_room(self, patient):
-        """ collects statistics when a patient joins the waiting room
-        :param patient: the patient who is joining the waiting room
+    def collect_patient_joining_pcp_waiting_room(self, patient):
+        """ collects statistics when a patient joins the pcp waiting room
+        :param patient: the patient who is joining the pcp waiting room
         """
 
-        # store the time this patient joined the waiting room
-        patient.tJoinedWaitingRoom = self.simCal.time
+        # store the time this patient joined the pcp waiting room
+        patient.tJoinedPCPWaitingRoom = self.simCal.time
 
-        # update the sample path of patients waiting
-        self.nPatientsWaiting.record_increment(time=self.simCal.time, increment=1)
+        # update the sample path of patients waiting for see pcp
+        self.nPatientsWaitingPCP.record_increment(time=self.simCal.time, increment=1)
 
     def collect_patient_joining_mh_waiting_room(self, patient):
-        """ collects statistics when a patient joins the waiting room
-        :param patient: the patient who is joining the waiting room
+        """ collects statistics when a patient joins the waiting room for mental health specialist (MHS)
+        :param patient: the patient who is joining the waiting room for MHS
         """
 
         # store the time this patient joined the waiting room
-        patient.tJoinedWaitingRoomMH = self.simCal.time
+        patient.tJoinedMHWaitingRoom = self.simCal.time
 
         # update the sample path of patients waiting
         self.nPatientsWaitingMH.record_increment(time=self.simCal.time, increment=1)
 
-    def collect_patient_leaving_waiting_room(self, patient):
-        """ collects statistics when a patient leave the waiting room
-        :param patient: the patient who is leave the waiting room
+    def collect_patient_leaving_pcp_waiting_room(self, patient):
+        """ collects statistics when a patient leave the PCP waiting room
+        :param patient: the patient who is leave the PCP waiting room
         """
 
-        # store the time this patient leaves the waiting room
-        patient.tLeftWaitingRoom = self.simCal.time
+        # store the time this patient leaves the PCP waiting room
+        patient.tLeftPCPWaitingRoom = self.simCal.time
 
         # update the sample path
-        self.nPatientsWaiting.record_increment(time=self.simCal.time, increment=-1)
+        self.nPatientsWaitingPCP.record_increment(time=self.simCal.time, increment=-1)
 
     def collect_patient_leaving_mh_waiting_room(self, patient):
-        """ collects statistics when a patient leave the waiting room
-        :param patient: the patient who is leave the waiting room
+        """ collects statistics when a patient leave the MHS waiting room
+        :param patient: the patient who is leave the MHS waiting room
         """
 
-        # store the time this patient leaves the waiting room
-        patient.tLeftWaitingRoomMH = self.simCal.time
+        # store the time this patient leaves the MHS waiting room
+        patient.tLeftMHWaitingRoom = self.simCal.time
 
         # update the sample path
         self.nPatientsWaitingMH.record_increment(time=self.simCal.time, increment=-1)
@@ -116,23 +114,23 @@ class SimOutputs:
         self.nPatientInSystem.record_increment(time=self.simCal.time, increment=-1)
 
         time_in_system = self.simCal.time - patient.tArrived
-        if patient.tJoinedWaitingRoom is None:
-            time_waiting_exam = 0
+        if patient.tJoinedPCPWaitingRoom is None:
+            time_waiting_pcp = 0
         else:
-            time_waiting_exam = patient.tLeftWaitingRoom - patient.tJoinedWaitingRoom
+            time_waiting_pcp = patient.tLeftPCPWaitingRoom - patient.tJoinedPCPWaitingRoom
 
-        self.patientTimeInWaitingRoom.append(time_waiting_exam)
+        self.patientTimeInPCPWaitingRoom.append(time_waiting_pcp)
         self.patientTimeInSystem.append(time_in_system)
 
         if patient.ifWithDepression:
-            self.nPatientsReceivedConsult += 1
-            if patient.tJoinedWaitingRoomMH is None:
+            self.nPatientsReceivedMHConsult += 1
+            if patient.tJoinedMHWaitingRoom is None:
                 time_waiting_mh = 0
             else:
-                time_waiting_mh = patient.tLeftWaitingRoomMH - patient.tJoinedWaitingRoomMH
+                time_waiting_mh = patient.tLeftMHWaitingRoom - patient.tJoinedMHWaitingRoom
 
-            self.patientTimeInMentalHealthWaiting.append(time_waiting_mh)
-            self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=-1)
+            self.patientTimeInMHWaitingRoom.append(time_waiting_mh)
+            self.nMHSBusy.record_increment(time=self.simCal.time, increment=-1)
 
         # build the patient summary
         if self.traceOn:
@@ -140,23 +138,23 @@ class SimOutputs:
                 str(patient),        # name
                 patient.tArrived,    # time arrived
                 self.simCal.time,    # time left
-                time_waiting_exam,        # time waiting
+                time_waiting_pcp,        # time waiting
                 time_in_system]      # time in the system
             )
 
-    def collect_patient_starting_exam(self):
-        """ collects statistics for a patient who just started the exam """
+    def collect_patient_starting_pcp_exam(self):
+        """ collects statistics for a patient who just started the exam with a pcp """
 
-        self.nExamRoomBusy.record_increment(time=self.simCal.time, increment=1)
+        self.nPCPBusy.record_increment(time=self.simCal.time, increment=1)
 
-    def collect_patient_ending_exam(self):
+    def collect_patient_ending_pcp_exam(self):
 
-        self.nExamRoomBusy.record_increment(time=self.simCal.time, increment=-1)
+        self.nPCPBusy.record_increment(time=self.simCal.time, increment=-1)
 
     def collect_patient_starting_mh_exam(self):
         """ collects statistics for a patient who just started the mh consult """
 
-        self.nMentalHealthBusy.record_increment(time=self.simCal.time, increment=1)
+        self.nMHSBusy.record_increment(time=self.simCal.time, increment=1)
 
     def collect_end_of_simulation(self):
         """
@@ -165,10 +163,10 @@ class SimOutputs:
 
         # update sample paths
         self.nPatientsWaitingMH.close(time=self.simCal.time)
-        self.nPatientsWaiting.close(time=self.simCal.time)
+        self.nPatientsWaitingPCP.close(time=self.simCal.time)
         self.nPatientInSystem.close(time=self.simCal.time)
-        self.nExamRoomBusy.close(time=self.simCal.time)
-        self.nMentalHealthBusy.close(time=self.simCal.time)
+        self.nPCPBusy.close(time=self.simCal.time)
+        self.nMHSBusy.close(time=self.simCal.time)
 
     def get_ave_patient_time_in_system(self):
         """
@@ -182,11 +180,11 @@ class SimOutputs:
         :return: average patient waiting time
         """
 
-        return sum(self.patientTimeInWaitingRoom)/len(self.patientTimeInWaitingRoom)
+        return sum(self.patientTimeInPCPWaitingRoom)/len(self.patientTimeInPCPWaitingRoom)
 
     def get_ave_patient_mh_waiting_time(self):
         """
         :return: average patient waiting time for MHS
         """
 
-        return sum(self.patientTimeInMentalHealthWaiting)/len(self.patientTimeInMentalHealthWaiting)
+        return sum(self.patientTimeInMHWaitingRoom)/len(self.patientTimeInMHWaitingRoom)

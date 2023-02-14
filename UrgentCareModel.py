@@ -1,11 +1,12 @@
-import SimPy.InOutFunctions as IO
-import SimPy.DiscreteEventSim as SimCls
-import SimPy.Support.Simulation as Sim
-import InputData as D
-import ModelOutputs as O
-import ModelEvents as E
-import ModelEntities as M
 import numpy as np
+from deampy.discrete_event_sim import SimulationCalendar
+from deampy.in_out_functions import write_csv
+from deampy.support.simulation import DiscreteEventSimTrace
+
+import InputData as D
+from ModelEntities import UrgentCare, Patient
+from ModelEvents import CloseUrgentCare, Arrival
+from ModelOutputs import SimOutputs
 
 
 class UrgentCareModel:
@@ -47,28 +48,28 @@ class UrgentCareModel:
         """
 
         # simulation calendar
-        self.simCal = SimCls.SimulationCalendar()
+        self.simCal = SimulationCalendar()
 
         # simulation outputs
-        self.simOutputs = O.SimOutputs(sim_cal=self.simCal,
-                                       trace_on=D.TRACE_ON)
+        self.simOutputs = SimOutputs(sim_cal=self.simCal,
+                                     trace_on=D.TRACE_ON)
 
         # simulation trace
-        self.trace = Sim.DiscreteEventSimTrace(sim_calendar=self.simCal,
-                                               if_should_trace=D.TRACE_ON,
-                                               deci=D.DECI)
+        self.trace = DiscreteEventSimTrace(sim_calendar=self.simCal,
+                                           if_should_trace=D.TRACE_ON,
+                                           deci=D.DECI)
 
         # urgent care
-        self.urgentCare = M.UrgentCare(id=id,
-                                       parameters=self.params,
-                                       sim_cal=self.simCal,
-                                       sim_out=self.simOutputs,
-                                       trace=self.trace)
+        self.urgentCare = UrgentCare(id=id,
+                                     parameters=self.params,
+                                     sim_cal=self.simCal,
+                                     sim_out=self.simOutputs,
+                                     trace=self.trace)
 
         # schedule the closing event
         self.simCal.add_event(
-            event=E.CloseUrgentCare(time=self.params.hoursOpen,
-                                    urgent_care=self.urgentCare)
+            event=CloseUrgentCare(time=self.params.hoursOpen,
+                                  urgent_care=self.urgentCare)
         )
 
         # find the arrival time of the first patient
@@ -81,9 +82,9 @@ class UrgentCareModel:
 
         # schedule the arrival of the first patient
         self.simCal.add_event(
-            event=E.Arrival(time=arrival_time,
-                            patient=M.Patient(id=0, if_with_depression=if_with_depression),
-                            urgent_care=self.urgentCare)
+            event=Arrival(time=arrival_time,
+                          patient=Patient(id=0, if_with_depression=if_with_depression),
+                          urgent_care=self.urgentCare)
         )
 
     def print_trace(self):
@@ -94,8 +95,8 @@ class UrgentCareModel:
                                directory='Trace',
                                delete_existing_files=True)
         # patient summary
-        IO.write_csv(file_name='Patients-Replication' + str(self.id) + '.txt',
-                     rows=self.simOutputs.patientSummary,
-                     directory='Patients Summary',
-                     delete_existing_files=True)
+        write_csv(file_name='Patients-Replication' + str(self.id) + '.txt',
+                  rows=self.simOutputs.patientSummary,
+                  directory='Patients Summary',
+                  delete_existing_files=True)
 

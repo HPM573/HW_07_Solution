@@ -41,14 +41,14 @@ class EndOfExam(SimulationEvent):
         # initialize the base class
         SimulationEvent.__init__(self, time=time, priority=END_OF_EXAM)
 
-        self.examRoom = physician
+        self.physician = physician
         self.urgentCare = urgent_care
 
     def process(self, rng=None):
         """ processes the end of service event """
 
         # process the end of service for this exam room
-        self.urgentCare.process_end_of_exam(pcp=self.examRoom, rng=rng)
+        self.urgentCare.process_end_of_exam(physician=self.physician, rng=rng)
 
 
 class EndOfMentalHealthConsult(SimulationEvent):

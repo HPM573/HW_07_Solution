@@ -9,16 +9,16 @@ class Patient:
         """
         self.id = id
         self.ifWithDepression = if_with_depression
-        self.tJoinedWaitingRoom = None
-        self.tLeftWaitingRoom = None
-        self.tLeftWaitingRoomMH = None
-        self.tJoinedWaitingRoomMH = None
+        self.tJoinedPCPWaitingRoom = None
+        self.tLeftPCPWaitingRoom = None
+        self.tJoinedMHWaitingRoom = None
+        self.tLeftMHWaitingRoom = None
 
     def __str__(self):
         return "Patient " + str(self.id)
 
 
-class WaitingRoom:
+class PCPWaitingRoom:
     def __init__(self, sim_out, trace):
         """ create a waiting room
         :param sim_out: simulation output
@@ -34,7 +34,7 @@ class WaitingRoom:
         """
 
         # update statistics for the patient who joins the waiting room
-        self.simOut.collect_patient_joining_waiting_room(patient=patient)
+        self.simOut.collect_patient_joining_pcp_waiting_room(patient=patient)
 
         # add the patient to the list of patients waiting
         self.patientsWaiting.append(patient)
@@ -49,7 +49,7 @@ class WaitingRoom:
         """
 
         # update statistics for the patient who leaves the waiting room
-        self.simOut.collect_patient_leaving_waiting_room(patient=self.patientsWaiting[0])
+        self.simOut.collect_patient_leaving_pcp_waiting_room(patient=self.patientsWaiting[0])
 
         # trace
         self.trace.add_message(
@@ -165,14 +165,14 @@ class PCP(Physician):
         self.trace.add_message(str(patient) + ' starts service in ' + str(self))
 
         # collect statistics
-        self.simOut.collect_patient_starting_exam()
+        self.simOut.collect_patient_starting_pcp_exam()
 
         # find the exam completion time (current time + service time)
         exam_completion_time = self.simCal.time + self.serviceTimeDist.sample(rng=rng)
 
         # schedule the end of exam
         self.simCal.add_event(
-            event=EndOfExam(time=exam_completion_time, exam_room=self, urgent_care=self.urgentCare)
+            event=EndOfExam(time=exam_completion_time, physician=self, urgent_care=self.urgentCare)
         )
 
     def remove_patient(self):
@@ -184,9 +184,9 @@ class PCP(Physician):
 
         # the physician is idle now
         self.isBusy = False
-        #
-        # # collect statistics
-        self.simOut.collect_patient_ending_exam()
+
+        # collect statistics
+        self.simOut.collect_patient_ending_pcp_exam()
 
         if returned_patient.ifWithDepression is False:
             # collect statistics
@@ -277,8 +277,8 @@ class UrgentCare:
         self.ifOpen = True  # if the urgent care is open and admitting new patients
 
         # waiting room
-        self.waitingRoom = WaitingRoom(sim_out=self.simOutputs,
-                                       trace=self.trace)
+        self.waitingRoom = PCPWaitingRoom(sim_out=self.simOutputs,
+                                          trace=self.trace)
 
         # PCPs
         self.PCPs = []
@@ -358,17 +358,17 @@ class UrgentCare:
             )
         )
 
-    def process_end_of_exam(self, exam_room, rng):
+    def process_end_of_exam(self, physician, rng):
         """ processes the end of exam in the specified exam room
-        :param exam_room: the exam room where the service is ended
+        :param physician: the exam room where the service is ended
         :param rng: random number generator
         """
 
         # trace
-        self.trace.add_message('Processing end of exam in ' + str(exam_room) + '.')
+        self.trace.add_message('Processing end of exam in ' + str(physician) + '.')
 
         # get the patient who is about to be discharged
-        this_patient = exam_room.remove_patient()
+        this_patient = physician.remove_patient()
 
         # check the mental health status of the patient
         if this_patient.ifWithDepression:
@@ -385,7 +385,7 @@ class UrgentCare:
         if self.waitingRoom.get_num_patients_waiting() > 0:
 
             # start serving the next patient in line
-            exam_room.exam(patient=self.waitingRoom.get_next_patient(), rng=rng)
+            physician.exam(patient=self.waitingRoom.get_next_patient(), rng=rng)
 
     def process_end_of_consultation(self, mhp, rng):
         """ process the end of mental health consultation
